@@ -41,6 +41,24 @@ def angle(pt1,pt2,pt0):
     dy2 = pt2[0][1] - pt0[0][1]
     return float((dx1*dx2 + dy1*dy2))/math.sqrt(float((dx1*dx1 + dy1*dy1))*(dx2*dx2 + dy2*dy2) + 1e-10)
 
+def crop_minAreaRect(img, rect):
+
+    # rotate img
+    angle = rect[2]
+    rows,cols = img.shape[0], img.shape[1]
+    M = cv2.getRotationMatrix2D((cols/2,rows/2),angle,1)
+    img_rot = cv2.warpAffine(img,M,(cols,rows))
+    # rotate bounding box
+    rect0 = (rect[0], rect[1], 0.0)
+    box = cv2.boxPoints(rect)
+    pts = np.int0(cv2.transform(np.array([box]), M))[0]    
+    pts[pts < 0] = 0
+
+    # crop
+    img_crop = img_rot[pts[1][1]:pts[0][1], pts[1][0]:pts[2][0]]
+                       
+    return img_crop
+
 while(cap.isOpened()):
     #Capture frame-by-frame
     ret, frame = cap.read()
@@ -76,13 +94,27 @@ while(cap.isOpened()):
                 print w,h
                 
                 if(vtc==4):
-                    pts_src = np.array(approx, np.float32 )
-                    h, status = cv2.findHomography( pts_src, pts_dst )
+                    if (w > 100 or h >100):
+                        pts_src = np.array(approx, np.float32 )
+                        h, status = cv2.findHomography( pts_src, pts_dst )
+                        #area = cv2.contourArea(contours[i])
                     #out = cv2.warpPerspective(frame, h, ( int( _width + _margin * 2 ), int( _height + _margin * 2 ) ) )
-                    cv2.drawContours(frame, [approx], -1, ( 255, 0, 0 ), 20)
+                        cv2.drawContours(frame, [approx], -1, ( 255, 0, 0 ), 24)
+                        crop_img = frame 
+												
+                        #cv2.imshow("crop_img", crop_img)  #esto debe ser descomentado luegomas adelante
+                        #canny2 = cv2.Canny(frame,80,240,3)
+                        rect = cv2.minAreaRect(contours[i])
+                        img_croped = crop_minAreaRect(frame, rect)
+                        cv2.imshow("crop_img", img_croped)  # aqui estamos cortando solo el pedazo de papel que necesitamos
+                        #this is means that img_croped es lo unico que tenemos que aplicarle un filtro
+# crop
+#img_croped = crop_minAreaRect(img, rect)
+                        #cv2.waitKey(0) 
+                        
                     
                     
-                    cv2.putText(frame,'RECT',(x,y),cv2.FONT_HERSHEY_SIMPLEX,scale,(255,255,255),2,cv2.LINE_AA)
+                        #cv2.putText(frame,'RECT',(x,y),cv2.FONT_HERSHEY_SIMPLEX,scale,(255,255,255),2,cv2.LINE_AA)
                   
                     
              
