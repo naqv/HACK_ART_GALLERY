@@ -2,9 +2,14 @@
 import math
 import numpy as np
 import cv2
+import json
 import base64
 
 #dictionary of all contours
+import requests
+from PIL import Image
+# import matplotlib.pyplot as plt
+
 contours = {}
 #array of edges of polygon
 approx = []
@@ -25,6 +30,13 @@ count = 0
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('output.avi',fourcc, 20.0, (640,480))
 
+addr = 'http://iccluster026.iccluster.epfl.ch:5001'
+test_url = addr + '/api/style/rain_princess'
+
+content_type = 'image/jpeg'
+headers = {'content-type': content_type}
+
+
 corners = np.array(
 	[
 		[[  		_margin, _margin 			]],
@@ -44,8 +56,40 @@ def angle(pt1,pt2,pt0):
     dy2 = pt2[0][1] - pt0[0][1]
     return float((dx1*dx2 + dy1*dy2))/math.sqrt(float((dx1*dx1 + dy1*dy1))*(dx2*dx2 + dy2*dy2) + 1e-10)
 
-def filter_1(frame):
-    return cv2.bitwise_not(frame)
+def filter_1(img):
+    # encode image as jpeg
+    # _, img_encoded = cv2.imencode('.jpg', img)
+    # # send http request with image and receive response
+    # response = requests.post(test_url, data=img_encoded.tostring(), headers=headers)
+    # # decode response
+    # print(response.text)  # JPEG binary content ! Write to a file as "name.jpg"
+
+    addr = 'http://iccluster026.iccluster.epfl.ch:5001'
+    # test_url = addr + '/api/style/rain_princess'
+    test_url = addr + '/api/style/rain_princess'
+
+    # prepare headers for http request
+    content_type = 'image/jpeg'
+    headers = {'content-type': content_type}
+
+    # img = cv2.imread('scenery.jpg')
+    # encode image as jpeg
+    _, img_encoded = cv2.imencode('.jpg', img)
+    # print(img_encoded)
+    # send http request with image and receive response
+    response = requests.post(test_url, data=img_encoded.tostring(), headers=headers)
+    # decode response
+    # print(response.text) # JPEG binary content ! Write to a file as "name.jpg"
+
+    fp = open("test.jpg", "wb")
+    fp.write(response.content)
+    fp.close()
+
+    image = cv2.imread("test.jpg")
+
+    cv2.imshow('image',cv2.resize(image, (400,400)))
+
+    return img
 
 def crop_minAreaRect(img, rect):
 
@@ -103,10 +147,22 @@ while(cap.isOpened()):
                         with open("framewd.jpg", "rb") as imageFile:
                             f = imageFile.read()
                             b = bytearray(f)
-                            print(b)
+                            # print(b)
                         delay_x = delay_y = 50
 
                         # frame[delay_x:delay_x+ img_croped.shape[0], delay_y:delay_y+img_croped.shape[1]] = filter_1(img_croped)
+
+                        output = filter_1(img_croped)
+
+
+
+                        # ImageAddress = filter_1(img_croped)
+                        # ImageItself = Image.open(ImageAddress)
+                        # ImageNumpyFormat = np.asarray(ImageItself)
+                        # plt.imshow(ImageNumpyFormat)
+                        # plt.draw()
+                        # plt.pause(10) # pause how many seconds
+                        # plt.close()
 
         #Display the resulting frame
         out.write(frame)
