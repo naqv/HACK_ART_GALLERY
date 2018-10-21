@@ -2,6 +2,8 @@
 import math
 import numpy as np
 import cv2
+from PIL import Image, ImageDraw
+import imutils
 
 #dictionary of all contours
 contours = {}
@@ -17,6 +19,8 @@ url = "http://10.4.230.168:8080/shot.jpg"
 _width  = 600.0
 _height = 420.0
 _margin = 0.0
+
+count = 0
 
 # Define the codec and create VideoWriter object
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -41,6 +45,9 @@ def angle(pt1,pt2,pt0):
     dy2 = pt2[0][1] - pt0[0][1]
     return float((dx1*dx2 + dy1*dy2))/math.sqrt(float((dx1*dx1 + dy1*dy1))*(dx2*dx2 + dy2*dy2) + 1e-10)
 
+def filter_1(frame):
+    return cv2.bitwise_not(frame)
+
 def crop_minAreaRect(img, rect):
 
     # rotate img
@@ -60,64 +67,47 @@ def crop_minAreaRect(img, rect):
     return img_crop
 
 while(cap.isOpened()):
-    #Capture frame-by-frame
     ret, frame = cap.read()
     if ret==True:
-        #grayscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        #Canny
         canny = cv2.Canny(frame,80,240,3)
-
         #contours
         canny2, contours, hierarchy = cv2.findContours(canny,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
         for i in range(0,len(contours)):
-            #approximate the contour with accuracy proportional to
-            #the contour perimeter
             approx = cv2.approxPolyDP(contours[i],cv2.arcLength(contours[i],True)*0.02,True)
 
-            #Skip small or non-convex objects
             if(abs(cv2.contourArea(contours[i]))<100 or not(cv2.isContourConvex(approx))):
                 continue
 
             if(len(approx)==4):
                 vtc = len(approx)
-                #get cos of all corners
                 cos = []
                 for j in range(2,vtc+1):
                     cos.append(angle(approx[j%vtc],approx[j-2],approx[j-1]))
-                #sort ascending cos
                 cos.sort()
-                #get lowest and highest
                 mincos = cos[0]
                 maxcos = cos[-1]
                 x,y,w,h = cv2.boundingRect(contours[i])
-                print w,h
+                print (w,h)
                 
                 if(vtc==4):
                     if (w > 100 or h >100):
                         pts_src = np.array(approx, np.float32 )
                         h, status = cv2.findHomography( pts_src, pts_dst )
-                        #area = cv2.contourArea(contours[i])
-                    #out = cv2.warpPerspective(frame, h, ( int( _width + _margin * 2 ), int( _height + _margin * 2 ) ) )
-                        cv2.drawContours(frame, [approx], -1, ( 255, 0, 0 ), 24)
-                        crop_img = frame 
-												
-                        #cv2.imshow("crop_img", crop_img)  #esto debe ser descomentado luegomas adelante
-                        #canny2 = cv2.Canny(frame,80,240,3)
+                        # cv2.drawContours(frame, [approx], -1, ( 255, 0, 0 ), 24)
                         rect = cv2.minAreaRect(contours[i])
                         img_croped = crop_minAreaRect(frame, rect)
-                        cv2.imshow("crop_img", img_croped)  # aqui estamos cortando solo el pedazo de papel que necesitamos
-                        #this is means that img_croped es lo unico que tenemos que aplicarle un filtro
-# crop
-#img_croped = crop_minAreaRect(img, rect)
-                        #cv2.waitKey(0) 
-                        
-                    
-                    
-                        #cv2.putText(frame,'RECT',(x,y),cv2.FONT_HERSHEY_SIMPLEX,scale,(255,255,255),2,cv2.LINE_AA)
-                  
-                    
-             
+                        # filter_1(img_croped)
+                        # cv2.imshow("crop_img", filter_1(img_croped))  # aqui estamos cortando solo el pedazo de papel que necesitamos
+                        cv2.drawContours(frame, [approx], -1, (255, 0, 0), 24)
+                        cv2.imwrite("framewd.jpg", img_croped)
+                        with open("framewd.jpg", "rb") as imageFile:
+                            f = img_croped.read()
+                            b = bytearray(f)
+                            print(b)
+                        delay_x = delay_y = 50
+
+                        # frame[delay_x:delay_x+ img_croped.shape[0], delay_y:delay_y+img_croped.shape[1]] = filter_1(img_croped)
 
         #Display the resulting frame
         out.write(frame)
