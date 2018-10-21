@@ -2,8 +2,7 @@
 import math
 import numpy as np
 import cv2
-from PIL import Image, ImageDraw
-import imutils
+import base64
 
 #dictionary of all contours
 contours = {}
@@ -102,7 +101,7 @@ while(cap.isOpened()):
                         cv2.drawContours(frame, [approx], -1, (255, 0, 0), 24)
                         cv2.imwrite("framewd.jpg", img_croped)
                         with open("framewd.jpg", "rb") as imageFile:
-                            f = img_croped.read()
+                            f = imageFile.read()
                             b = bytearray(f)
                             print(b)
                         delay_x = delay_y = 50
